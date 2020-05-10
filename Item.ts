@@ -9,7 +9,7 @@ type Category =
     'Furniture'
 
 interface Ingredient {
-    item: Item
+    itemid: number
     amount: number
 }
 
@@ -20,70 +20,69 @@ interface Item {
     recipe: Ingredient[]
 }
 
-const TreeBranch: Item = {
-    id: 6,
-    name: 'Tree Branch',
-    category: 'Material',
-    recipe: []
-}
+const DataBase: Item[] = [
+    {
+        id: 1,
+        name: 'Tree Branch',
+        category: 'Material',
+        recipe: []
+    },
+    {
+        id: 2,
+        name: 'Stone',
+        category: 'Material',
+        recipe: []
+    },
+    {
+        id: 3,
+        name: 'Wood',
+        category: 'Material',
+        recipe: []
+    },
+    {
+        id: 4,
+        name: 'Iron Nugget',
+        category: 'Material',
+        recipe: []
+    },
+    {
+        id: 5,
+        name: 'Gold Nugget',
+        category: 'Material',
+        recipe: []
+    },
+    {
+        id: 6,
+        name: 'Flimsy Axe',
+        category: 'Tool',
+        recipe: [
+            {itemid: 1, amount: 5},
+            {itemid: 2, amount: 1}
+        ]
+    },
+    {
+        id: 7,
+        name: 'Axe',
+        category: 'Tool',
+        recipe: [
+            {itemid: 6, amount: 1},
+            {itemid: 3, amount: 3},
+            {itemid: 4, amount: 1}
+        ]
+    },
+    {
+        id: 8,
+        name: 'Golden Axe',
+        category: 'Tool',
+        recipe: [
+            {itemid: 7, amount: 1},
+            {itemid: 5, amount: 1}
+        ]
+    }
+]
 
-const Stone: Item = {
-    id: 7,
-    name: 'Stone',
-    category: 'Material',
-    recipe: []
-}
-
-const Wood: Item = {
-    id: 1,
-    name: 'Wood',
-    category: 'Material',
-    recipe: []
-}
-
-const IronNugget: Item = {
-    id: 2,
-    name: 'Iron Nugget',
-    category: 'Material',
-    recipe: []
-}
-
-const GoldNugget: Item = {
-    id: 3,
-    name: 'Gold Nugget',
-    category: 'Material',
-    recipe: []
-}
-
-const FlimsyAxe: Item = {
-    id: 8,
-    name: 'Flimsy Axe',
-    category: 'Tool',
-    recipe: [
-        {item: TreeBranch, amount: 5},
-        {item: Stone, amount: 1}
-    ]
-}
-
-const Axe: Item = {
-    id: 9,
-    name: 'Axe',
-    category: 'Tool',
-    recipe: [
-        {item: FlimsyAxe, amount: 1},
-        {item: Wood, amount: 3},
-        {item: IronNugget, amount: 1}
-    ]
-}
-
-const GoldenAxe: Item = {
-    id: 10,
-    name: 'Golden Axe',
-    category: 'Tool',
-    recipe: [
-        {item: Axe, amount: 1},
-        {item: GoldNugget, amount: 1}
-    ]
+function getItemById(id: number): Item {
+    return DataBase.find(item => item.id === id)
 }
 
 function flatten<Type>(array: Type[][]): Type[] {
@@ -96,10 +95,10 @@ function flatten<Type>(array: Type[][]): Type[] {
 
 function getBaseIngredients(recipe: Ingredient[]): Ingredient[] {
     return flatten(recipe.map(ingredient => {
-        if(ingredient.item.recipe.length === 0) {
+        if(getItemById(ingredient.itemid).recipe.length === 0) {
             return [ingredient]
         } else {
-            return flatten(new Array(ingredient.amount).fill(getBaseIngredients(ingredient.item.recipe)))
+            return flatten(new Array(ingredient.amount).fill(getBaseIngredients(getItemById(ingredient.itemid).recipe)))
         }
     }))
 }
@@ -109,15 +108,15 @@ function compoundBaseIngredients(recipe: Ingredient[], result: Ingredient[] = []
         return result
     } else {
         const currentIngredient = recipe[0]
-        const resultMatch = result.find(ingredient => ingredient.item.id === currentIngredient.item.id)
+        const resultMatch = result.find(ingredient => getItemById(ingredient.itemid).id === getItemById(currentIngredient.itemid).id)
         if(resultMatch === undefined) {
             return compoundBaseIngredients(recipe.slice(1, recipe.length), [currentIngredient, ...result])
         } else {
             const newIngredient = {
-                item: currentIngredient.item,
+                itemid: currentIngredient.itemid,
                 amount: currentIngredient.amount + resultMatch.amount
             }
-            const newResult = [newIngredient, ...result.filter(ingredient => ingredient.item.id !== currentIngredient.item.id)]
+            const newResult = [newIngredient, ...result.filter(ingredient => getItemById(ingredient.itemid).id !== getItemById(currentIngredient.itemid).id)]
             return compoundBaseIngredients(recipe.slice(1, recipe.length), newResult)
         }
     }
@@ -131,15 +130,16 @@ interface DisplayBaseIngredients {
     }[]
 }
 
-function expandRecipe(item: Item): DisplayBaseIngredients {
+function expandRecipe(itemid: number): DisplayBaseIngredients {
+    const item = getItemById(itemid)
     return {
         item: item.name,
         ingredients: compoundBaseIngredients(getBaseIngredients(item.recipe))
         .map(ingredient => ({
-            name: ingredient.item.name,
+            name: getItemById(ingredient.itemid).name,
             amount: ingredient.amount
         }))
     }
 }
 
-console.log(expandRecipe(GoldenAxe))
+console.log(expandRecipe(8))
