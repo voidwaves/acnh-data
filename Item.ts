@@ -86,20 +86,20 @@ function getItemById(id: number): Item {
 }
 
 function flatten<Type>(array: Type[][]): Type[] {
-    if(array.length === 0) {
-        return []
-    } else {
-        return [...array[0], ...flatten(array.slice(1, array.length))]
-    }
+    const isEmpty = array.length === 0
+    return isEmpty ? [] : [...array[0], ...flatten(array.slice(1, array.length))]
+}
+
+function repeatArray<Type>(times: number, array: Type[]): Type[] {
+    const filledArray = new Array(times).fill(array)
+    return flatten(filledArray)
 }
 
 function getBaseIngredients(recipe: Ingredient[]): Ingredient[] {
     return flatten(recipe.map(ingredient => {
-        if(getItemById(ingredient.itemid).recipe.length === 0) {
-            return [ingredient]
-        } else {
-            return flatten(new Array(ingredient.amount).fill(getBaseIngredients(getItemById(ingredient.itemid).recipe)))
-        }
+        const item = getItemById(ingredient.itemid)
+        const isBaseIngredient = item.recipe.length === 0
+        return isBaseIngredient ? [ingredient] : repeatArray(ingredient.amount, getBaseIngredients(item.recipe))
     }))
 }
 
@@ -108,16 +108,20 @@ function compoundBaseIngredients(recipe: Ingredient[], result: Ingredient[] = []
         return result
     } else {
         const currentIngredient = recipe[0]
-        const resultMatch = result.find(ingredient => getItemById(ingredient.itemid).id === getItemById(currentIngredient.itemid).id)
+        const restOfRecipe = recipe.slice(1, recipe.length)
+        const resultMatch = result.find(ingredient => ingredient.itemid === currentIngredient.itemid)
+
         if(resultMatch === undefined) {
-            return compoundBaseIngredients(recipe.slice(1, recipe.length), [currentIngredient, ...result])
+            const addedIngredient = [currentIngredient, ...result]
+            return compoundBaseIngredients(restOfRecipe, addedIngredient)
         } else {
             const newIngredient = {
                 itemid: currentIngredient.itemid,
                 amount: currentIngredient.amount + resultMatch.amount
             }
-            const newResult = [newIngredient, ...result.filter(ingredient => getItemById(ingredient.itemid).id !== getItemById(currentIngredient.itemid).id)]
-            return compoundBaseIngredients(recipe.slice(1, recipe.length), newResult)
+            const withoutCurrentIngredient = result.filter(ingredient => ingredient.itemid !== currentIngredient.itemid)
+            const replacedIngredient = [newIngredient, ...withoutCurrentIngredient]
+            return compoundBaseIngredients(restOfRecipe, replacedIngredient)
         }
     }
 }
